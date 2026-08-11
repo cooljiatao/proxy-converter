@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proxy Converter - Clash Meta</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #f5f7fa;
+        color: #1f2937;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+      .wrap {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 28px 20px 40px;
+      }
+      h1 {
+        margin: 0 0 6px;
+        font-size: 25px;
+      }
+      .sub {
+        color: #6b7280;
+        margin-bottom: 20px;
+        font-size: 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 18px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      }
+      .full {
+        grid-column: 1 / -1;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 7px;
+      }
+      textarea,
+      input,
+      select {
+        width: 100%;
+        border: 1px solid #d1d5db;
+        border-radius: 7px;
+        padding: 10px 11px;
+        font:
+          13px/1.5 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          monospace;
+        background: #fff;
+        color: #111827;
+      }
+      textarea:focus,
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: #6b7280;
+      }
+      #input {
+        min-height: 280px;
+        resize: vertical;
+      }
+      #output {
+        min-height: 520px;
+        resize: vertical;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .row3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+      }
+      .buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+      button {
+        border: 0;
+        border-radius: 7px;
+        padding: 9px 14px;
+        cursor: pointer;
+        background: #111827;
+        color: white;
+        font-weight: 600;
+      }
+      button.secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+      button.danger {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+      .status {
+        margin-top: 10px;
+        font-size: 13px;
+        color: #6b7280;
+        min-height: 20px;
+      }
+      .hint {
+        margin-top: 7px;
+        color: #9ca3af;
+        font-size: 12px;
+      }
+      .count {
+        font-size: 12px;
+        color: #6b7280;
+        float: right;
+        font-weight: 400;
+      }
+      @media (max-width: 850px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .full {
+          grid-column: auto;
+        }
+        .row,
+        .row3 {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Proxy Converter</h1>
+      <div class="sub">本地离线工具：SOCKS5 代理地址 → Clash Meta YAML。所有数据仅在浏览器本地处理。</div>
+
+      <div class="grid">
+        <div class="card">
+          <label>
+            原始代理地址
+            <span class="count" id="count">0 个节点</span>
+          </label>
+          <textarea
+            id="input"
+            placeholder="每行一个：&#10;106.75.152.119:1000:username:password&#10;106.75.152.119:1001:username:password"
+          ></textarea>
+          <div class="hint">格式：server:port:username:password</div>
+          <div class="buttons">
+            <button onclick="convert()">转换</button>
+            <button class="secondary" onclick="pasteInput()">粘贴</button>
+            <button class="danger" onclick="clearAll()">清空</button>
+          </div>
+          <div class="status" id="status"></div>
+        </div>
+
+        <div class="card">
+          <label>配置参数</label>
+          <div class="row">
+            <div>
+              <label>节点名称前缀</label>
+              <input id="prefix" value="TH-Bangkok" />
+            </div>
+            <div>
+              <label>代理类型</label>
+              <select id="type">
+                <option value="socks5">socks5</option>
+                <option value="http">HTTP</option>
+                <option value="https">HTTPS</option>
+              </select>
+            </div>
+          </div>
+          <div class="row3">
+            <div>
+              <label>HTTP Port</label>
+              <input id="httpPort" value="7890" />
+            </div>
+            <div>
+              <label>SOCKS Port</label>
+              <input id="socksPort" value="7891" />
+            </div>
+            <div>
+              <label>UDP</label>
+              <select id="udp">
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>节点组名称</label>
+              <input id="groupName" value="谷歌" />
+            </div>
+            <div>
+              <label>规则主线路</label>
+              <input id="mainGroup" value="主线路" />
+            </div>
+          </div>
+          <label>代理组中的节点</label>
+          <div class="hint">
+            自动生成并加入节点组；支持 SOCKS5、HTTP、HTTPS。HTTPS 会按 Clash Meta 的 HTTP + TLS 格式生成；不包含任何
+            proxy-providers / 机场订阅配置。
+          </div>
+        </div>
+
+        <div class="card full">
+          <label>Clash Meta YAML</label>
+          <textarea id="output" spellcheck="false" placeholder="转换后的 YAML 将显示在这里"></textarea>
+          <div class="buttons">
+            <button onclick="copyOutput()">复制 YAML</button>
+            <button onclick="downloadYaml()">下载 YAML</button>
+            <button class="secondary" onclick="loadExample()">载入示例</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const rules = [
+        "  - DOMAIN,google.com,{{GROUP}}",
+        "  - DOMAIN,play.googleapis.com,{{GROUP}}",
+        "  - DOMAIN,myaccount.google.com,{{GROUP}}",
+        "  - DOMAIN-KEYWORD,accounts.google.com,{{GROUP}}",
+        "  - DOMAIN,play-fe.googleapis.com,{{GROUP}}",
+        "  - DOMAIN,sspanel.net,{{GROUP}}",
+        "  - DOMAIN,payments-pa.googleapis.com,{{GROUP}}",
+        "  - DOMAIN-KEYWORD,orders-dra.iap.cloud.huawei,{{GROUP}}",
+        "  - DOMAIN-SUFFIX,acs.cupdapp.cn,{{GROUP}}",
+        "  - DOMAIN-KEYWORD,iap-pay-dra.cloud.huawei,{{GROUP}}",
+        "  - MATCH,{{MAIN}}",
+      ];
+
+      function esc(v) {
+        return String(v).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      }
+
+      function parseLines() {
+        return document
+          .getElementById("input")
+          .value.split(/\r?\n/)
+          .map(x => x.trim())
+          .filter(Boolean);
+      }
+
+      function convert() {
+        const lines = parseLines();
+        const prefix = document.getElementById("prefix").value.trim() || "Proxy";
+        const type = document.getElementById("type").value;
+        const udp = document.getElementById("udp").value;
+        const group = document.getElementById("groupName").value.trim() || "代理";
+        const main = document.getElementById("mainGroup").value.trim() || "主线路";
+        const httpPort = document.getElementById("httpPort").value.trim() || "7890";
+        const socksPort = document.getElementById("socksPort").value.trim() || "7891";
+
+        const nodes = [];
+        const names = [];
+        const errors = [];
+
+        lines.forEach((line, i) => {
+          const parts = line.split(":");
+          if (parts.length !== 4 || !parts[0] || !parts[1] || !parts[2] || !parts[3]) {
+            errors.push(`第 ${i + 1} 行格式错误`);
+            return;
+          }
+          const [server, port, username, password] = parts;
+          const name = `${prefix}${String(nodes.length + 1).padStart(2, "0")}`;
+          nodes.push({ name, type, server, port, username, password, udp });
+          names.push(name);
+        });
+
+        let y = "";
+        y += `port: ${httpPort}\n`;
+        y += `socks-port: ${socksPort}\n`;
+        y += `allow-lan: true\n`;
+        y += `mode: Rule\n`;
+        y += `log-level: info\n`;
+        y += `external-controller: 127.0.0.1:9090\n`;
+        y += `\nproxies:\n`;
+
+        nodes.forEach(n => {
+          y += `  - name: "${esc(n.name)}"\n`;
+          y += `    type: ${n.type}\n`;
+          y += `    server: ${n.server}\n`;
+          y += `    port: "${esc(n.port)}"\n`;
+          y += `    username: "${esc(n.username)}"\n`;
+          y += `    password: "${esc(n.password)}"\n`;
+          y += `    udp: ${n.udp}\n`;
+        });
+
+        y += `\nproxy-groups:\n`;
+        y += `  - name: ${main}\n`;
+        y += `    proxies:\n`;
+        y += `      - DIRECT\n`;
+        y += `      - ${group}\n`;
+        y += `    type: select\n`;
+        y += `    disable-udp: true\n`;
+        y += `    health-check:\n`;
+        y += `      enable: true\n`;
+        y += `      interval: 600\n`;
+        y += `      url: http://www.gstatic.com/generate_204\n`;
+
+        y += `  - name: ${group}\n`;
+        y += `    proxies:\n`;
+        names.forEach(n => (y += `      - ${n}\n`));
+        y += `    type: select\n`;
+        y += `    disable-udp: false\n`;
+        y += `    health-check:\n`;
+        y += `      enable: false\n`;
+        y += `      interval: 600\n`;
+        y += `      url: http://www.gstatic.com/generate_204\n`;
+
+        y += `\nrules:\n`;
+        rules.forEach(r => (y += r.replace("{{GROUP}}", group).replace("{{MAIN}}", main) + "\n"));
+
+        document.getElementById("output").value = y;
+        document.getElementById("status").textContent =
+          `已转换 ${nodes.length} 个节点${errors.length ? "；" + errors.join("、") : ""}`;
+      }
+
+      function updateCount() {
+        const n = parseLines().length;
+        document.getElementById("count").textContent = `${n} 个节点`;
+      }
+      document.getElementById("input").addEventListener("input", updateCount);
+
+      async function pasteInput() {
+        try {
+          document.getElementById("input").value = await navigator.clipboard.readText();
+          updateCount();
+          document.getElementById("status").textContent = "已从剪贴板粘贴";
+        } catch {
+          document.getElementById("status").textContent = "浏览器禁止直接读取剪贴板，请使用 Ctrl/Cmd+V";
+        }
+      }
+
+      async function copyOutput() {
+        const text = document.getElementById("output").value;
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          document.getElementById("status").textContent = "YAML 已复制到剪贴板";
+        } catch {
+          document.getElementById("output").select();
+          document.execCommand("copy");
+          document.getElementById("status").textContent = "YAML 已复制";
+        }
+      }
+
+      function downloadYaml() {
+        const text = document.getElementById("output").value;
+        if (!text) return;
+        const blob = new Blob([text], { type: "text/yaml;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "clash-meta.yaml";
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+
+      function clearAll() {
+        document.getElementById("input").value = "";
+        document.getElementById("output").value = "";
+        document.getElementById("status").textContent = "";
+        updateCount();
+      }
+
+      function loadExample() {
+        document.getElementById("input").value = `106.75.152.119:1000:60d2c965-784bcb46-047719:wifi-th-10-10-bangkok
+106.75.152.119:1001:60d2c965-784bcb46-3aaca0:wifi-th-10-10-bangkok
+106.75.152.119:1002:60d2c965-784bcb46-cc445f:wifi-th-10-10-bangkok
+106.75.152.119:1003:60d2c965-784bcb46-83cf07:wifi-th-10-10-bangkok
+106.75.152.119:1004:60d2c965-784bcb46-417bb0:wifi-th-10-10-bangkok`;
+        document.getElementById("prefix").value = "TH-Bangkok";
+        updateCount();
+        convert();
+      }
+
+      updateCount();
+    </script>
+  </body>
+</html>
